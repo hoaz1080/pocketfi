@@ -124,20 +124,15 @@ class Pocketfi:
         self.log(f"{blue}Number of accounts : {white}{len(datas)}")
         print(self.line)
         while True:
-            list_countdown = []
-            _start = int(time.time())
             for no, data in enumerate(datas):
                 self.log(f"{blue}Account number : {white}{no + 1}/{len(datas)}")
                 res = self.get_user_mining(data)
                 print(self.line)
-                list_countdown.append(res)
-            _end = int(time.time())
-            _tot = _end - _start
-            if _tot <= 0:
-                continue
 
-            _min = min(list_countdown) - _tot
-            self.countdown(_min)
+            wait_time = 30 * 60
+            print()
+            self.log(f"{yellow}Wait for {int(wait_time/60)} minutes!")
+            time.sleep(wait_time)
 
 
 if __name__ == "__main__":
