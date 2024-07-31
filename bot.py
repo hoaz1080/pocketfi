@@ -4,6 +4,8 @@ import time
 import requests
 from colorama import *
 from datetime import datetime
+import json
+import brotli
 
 red = Fore.LIGHTRED_EX
 yellow = Fore.LIGHTYELLOW_EX
@@ -20,124 +22,125 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 data_file = os.path.join(script_dir, "data.txt")
 
 
-# Clear the terminal
-def clear_terminal():
-    # For Windows
-    if os.name == "nt":
-        _ = os.system("cls")
-    # For macOS and Linux
-    else:
-        _ = os.system("clear")
-
-
-class Pocketfi:
+class PocketFi:
     def __init__(self):
-        self.headers = {
-            "Accept": "*/*",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Connection": "keep-alive",
-            "Host": "rubot.pocketfi.org",
-            "Origin": "https://pocketfi.app",
-            "Referer": "https://pocketfi.app/",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "cross-site",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
-            "sec-ch-ua": '"Microsoft Edge";v="125", "Chromium";v="125", "Not.A/Brand";v="24", "Microsoft Edge WebView2";v="125"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": '"Windows"',
-        }
         self.line = white + "~" * 50
 
-    def next_claim_is(self, last_claim):
-        next_claim = last_claim + 3600
-        now = datetime.now().timestamp()
-        tetod = round(next_claim - now)
-        return tetod
+        self.banner = f"""
+        {blue}Smart Airdrop {white}PocketFi Auto Claimer
+        t.me/smartairdrop2120
+        
+        """
 
-    def http(self, url, headers, data=None):
-        while True:
-            try:
-                if data is None:
-                    res = requests.get(url, headers=headers)
-                    return res
+    # Clear the terminal
+    def clear_terminal(self):
+        # For Windows
+        if os.name == "nt":
+            _ = os.system("cls")
+        # For macOS and Linux
+        else:
+            _ = os.system("clear")
 
-                if data == "":
-                    res = requests.post(url, headers=headers)
-                    return res
+    def headers(self, data):
+        return {
+            "Accept": "application/json, text/plain, */*",
+            "Telegramrawdata": f"{data}",
+            "Origin": "https://pocketfi.app",
+            "Referer": "https://pocketfi.app/",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        }
 
-                res = requests.post(url, headers=headers, data=data)
-                return res
+    def mining_info(self, data):
+        url = f"https://gm.pocketfi.org/mining/getUserMining"
 
-            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
-                self.log(f"{red}Connection error / Connection timeout !")
-                time.sleep(1)
-                continue
+        headers = self.headers(data=data)
 
-    def countdown(self, t):
-        while t:
-            menit, detik = divmod(t, 60)
-            jam, menit = divmod(menit, 60)
-            jam = str(jam).zfill(2)
-            menit = str(menit).zfill(2)
-            detik = str(detik).zfill(2)
-            print(f"{white}Time left: {jam}:{menit}:{detik} ", flush=True, end="\r")
-            t -= 1
-            time.sleep(1)
-        print("                          ", flush=True, end="\r")
+        response = requests.get(url=url, headers=headers)
+
+        return response
+
+    def claim_mining(self, data):
+        url = f"https://gm.pocketfi.org/mining/claimMining"
+
+        headers = self.headers(data=data)
+
+        response = requests.post(url=url, headers=headers)
+
+        return response
+
+    def daily_boost(self, data):
+        url = f"https://bot2.pocketfi.org/boost/activateDailyBoost"
+
+        headers = self.headers(data=data)
+
+        response = requests.post(url=url, headers=headers)
+
+        return response
 
     def log(self, msg):
         now = datetime.now().isoformat(" ").split(".")[0]
-        print(f"{black}[{now}] {reset}{msg}")
-
-    def get_user_mining(self, tg_data):
-        url = "https://rubot.pocketfi.org/mining/getUserMining"
-        url_claim = "https://rubot.pocketfi.org/mining/claimMining"
-        headers = self.headers.copy()
-        headers["telegramRawData"] = tg_data
-        res = self.http(url, headers)
-        balance = res.json()["userMining"]["gotAmount"]
-        last_claim = res.json()["userMining"]["dttmLastClaim"] / 1000
-        self.log(f"{green}Balance : {white}{balance}")
-        can_claim = self.next_claim_is(last_claim)
-        if can_claim >= 0:
-            self.log(f"{yellow}Claim too early !")
-            return can_claim
-
-        res = self.http(url_claim, headers, "")
-        new_balance = res.json()["userMining"]["gotAmount"]
-        self.log(f"{green}Balance after claim : {white}{new_balance}")
-        return 3600
+        print(f"{black}[{now}]{reset} {msg}{reset}")
 
     def main(self):
-        clear_terminal()
-        banner = f"""
-    {blue}Smart Airdrop {white}PocketFi Auto Claimer
-    t.me/smartairdrop2120
-    
-        """
-        print(banner)
-        datas = open(data_file, "r").read().splitlines()
-        if len(datas) <= 0:
-            self.log(f"{red}Add data account in data.txt first !")
-            sys.exit()
-        self.log(f"{blue}Number of accounts : {white}{len(datas)}")
-        print(self.line)
         while True:
-            for no, data in enumerate(datas):
-                self.log(f"{blue}Account number : {white}{no + 1}/{len(datas)}")
-                res = self.get_user_mining(data)
-                print(self.line)
+            self.clear_terminal()
+            print(self.banner)
+            data = open(data_file, "r").read().splitlines()
+            num_acc = len(data)
+            self.log(self.line)
+            self.log(f"{green}Numer of account: {white}{num_acc}")
+            for no, data in enumerate(data):
+                self.log(self.line)
+                self.log(f"{green}Account number: {white}{no+1}/{num_acc}")
 
-            wait_time = 30 * 60
+                # Start bot
+                try:
+                    get_mining_info = self.mining_info(data=data).json()
+                    balance = get_mining_info["userMining"]["gotAmount"]
+                    mining_balance = get_mining_info["userMining"]["miningAmount"]
+
+                    self.log(
+                        f"{green}Balance: {white}{balance} - {green}Mining Balance: {white}{mining_balance}"
+                    )
+
+                    self.log(f"{yellow}Trying to claim...")
+                    if mining_balance > 0:
+                        claim_mining = self.claim_mining(data=data)
+                        if claim_mining.status_code == 200:
+                            self.log(f"{white}Claim Mining: {green}Success")
+                            balance = claim_mining.json()["userMining"]["gotAmount"]
+                            mining_balance = claim_mining.json()["userMining"][
+                                "miningAmount"
+                            ]
+
+                            self.log(
+                                f"{green}Balance: {white}{balance} - {green}Mining Balance: {white}{mining_balance}"
+                            )
+                        else:
+                            self.log(f"{white}Claim Mining: {red}Error")
+                    else:
+                        self.log(f"{white}Claim Mining: {red}No point to claim")
+
+                    self.log(f"{yellow}Trying to activate daily boost...")
+                    activate_boost = self.daily_boost(data=data).json()
+                    activate_status = activate_boost["updatedForDay"]
+                    if activate_status is not None:
+                        self.log(f"{white}Activate Daily Boost: {green}Success")
+                    else:
+                        self.log(f"{white}Activate Daily Boost: {red}Activated already")
+
+                except Exception as e:
+                    self.log(f"{red}Error {e}")
+
             print()
+            wait_time = 60 * 60
             self.log(f"{yellow}Wait for {int(wait_time/60)} minutes!")
             time.sleep(wait_time)
 
 
 if __name__ == "__main__":
     try:
-        pocketfi = Pocketfi()
+        pocketfi = PocketFi()
         pocketfi.main()
     except KeyboardInterrupt:
         sys.exit()
